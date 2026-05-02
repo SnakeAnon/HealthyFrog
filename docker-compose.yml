@@ -1,3 +1,7 @@
+# Явная версия схемы нужна для старых установок `docker-compose` (v1):
+# без `version` корень `services:` иногда ошибочно трактуется как v1-формат.
+version: "3.8"
+
 services:
   db:
     image: postgres:16-alpine

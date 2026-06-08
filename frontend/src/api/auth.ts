@@ -1,3 +1,4 @@
+import { RevokeResponse } from "../types";
 import api from "./client";
 
 export const register = (data: {
@@ -9,3 +10,7 @@ export const register = (data: {
 
 export const login = (data: { email: string; password: string }) =>
   api.post<{ access_token: string; token_type: string }>("/auth/login", data);
+
+export const logout = () => api.post<RevokeResponse>("/auth/logout");
+
+export const logoutAll = () => api.post<RevokeResponse>("/auth/logout-all");

@@ -1,69 +1,109 @@
 import AddIcon from "@mui/icons-material/Add";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
   Box,
   Button,
   Card,
   CardContent,
-  Chip,
+  Collapse,
   Divider,
+  Stack,
   Typography,
 } from "@mui/material";
+import { useState } from "react";
+import { MEAL_TYPE_LABEL } from "../../locale/ruLabels";
 import { Meal } from "../../types";
+
+const MEAL_EMOJI: Record<string, string> = {
+  breakfast: "🌅",
+  lunch: "☀️",
+  dinner: "🌙",
+  snack: "🍎",
+};
 
 export interface MealCardProps {
   meal: Meal;
-  /** Show “Add food” action (e.g. diary) */
-  onAddFood?: () => void;
+  onAdd?: () => void;
 }
 
-const mealTypeLabel: Record<string, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-  snack: "Snack",
-};
-
-/**
- * Single meal block: type chip, calories, macros, optional line items.
- */
-export default function MealCard({ meal, onAddFood }: MealCardProps) {
-  const label = mealTypeLabel[meal.meal_type] ?? meal.meal_type;
+export default function MealCard({ meal, onAdd }: MealCardProps) {
+  const label = MEAL_TYPE_LABEL[meal.meal_type] ?? meal.meal_type;
+  const emoji = MEAL_EMOJI[meal.meal_type] ?? "🍽️";
+  const showActions = Boolean(onAdd);
+  const [expanded, setExpanded] = useState(false);
+  const hasItems = meal.items.length > 0;
 
   return (
-    <Card sx={{ mb: 1.5 }}>
-      <CardContent sx={{ pb: onAddFood ? 0 : undefined, "&:last-child": { pb: onAddFood ? 0 : 2 } }}>
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
-          <Box flex={1} minWidth={0}>
-            <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-              <Chip
-                label={label}
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ fontWeight: 600, borderRadius: 2 }}
-              />
-              {meal.name && (
-                <Typography variant="subtitle2" fontWeight={700} noWrap>
-                  {meal.name}
-                </Typography>
-              )}
+    <Card sx={{ mb: 1.5, overflow: "visible" }}>
+      <CardContent sx={{ pb: "12px !important" }}>
+        {/* Header row */}
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          onClick={hasItems ? () => setExpanded((v) => !v) : undefined}
+          sx={{ cursor: hasItems ? "pointer" : "default", userSelect: "none" }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.25} flex={1} minWidth={0}>
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "10px",
+                bgcolor: (t) => t.palette.mode === "dark" ? "rgba(90,217,138,0.12)" : "rgba(24,160,88,0.10)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.1rem",
+                flexShrink: 0,
+              }}
+            >
+              {emoji}
             </Box>
-            <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
-              P {meal.total_protein.toFixed(0)}g · F {meal.total_fat.toFixed(0)}g · C{" "}
-              {meal.total_carbs.toFixed(0)}g
-            </Typography>
-          </Box>
-          <Typography variant="h6" fontWeight={800} color="primary.light" sx={{ flexShrink: 0 }}>
-            {meal.total_calories.toFixed(0)}
-            <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.25 }}>
-              kcal
-            </Typography>
-          </Typography>
+            <Box flex={1} minWidth={0}>
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Typography variant="body2" fontWeight={700}>
+                  {label}
+                </Typography>
+                {meal.name && (
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    · {meal.name}
+                  </Typography>
+                )}
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                Б {meal.total_protein.toFixed(0)} · Ж {meal.total_fat.toFixed(0)} · У {meal.total_carbs.toFixed(0)} г
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Stack direction="row" alignItems="center" spacing={0.5} flexShrink={0}>
+            <Box textAlign="right">
+              <Typography variant="subtitle1" fontWeight={800} color="primary.light" lineHeight={1.2}>
+                {meal.total_calories.toFixed(0)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" lineHeight={1}>
+                ккал
+              </Typography>
+            </Box>
+            {hasItems && (
+              <ExpandMoreIcon
+                sx={{
+                  color: "text.secondary",
+                  fontSize: 18,
+                  transition: "transform 0.2s",
+                  transform: expanded ? "rotate(180deg)" : "none",
+                  ml: 0.5,
+                }}
+              />
+            )}
+          </Stack>
         </Box>
 
-        {meal.items.length > 0 && (
-          <>
-            <Divider sx={{ my: 1.25, borderColor: "divider" }} />
+        {/* Items list */}
+        {hasItems && (
+          <Collapse in={expanded} timeout={220}>
+            <Divider sx={{ my: 1.25 }} />
             <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none" }}>
               {meal.items.map((item) => (
                 <Box
@@ -72,39 +112,40 @@ export default function MealCard({ meal, onAddFood }: MealCardProps) {
                   display="flex"
                   justifyContent="space-between"
                   alignItems="baseline"
+                  py={0.4}
                   gap={1}
-                  py={0.35}
                 >
-                  <Typography variant="body2" color="text.primary" sx={{ flex: 1, minWidth: 0 }} noWrap>
+                  <Typography variant="body2" sx={{ flex: 1, minWidth: 0 }} noWrap>
                     {item.product.name}
                     <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                      {item.amount_grams}g
+                      {item.amount_grams} г
                     </Typography>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                    {item.calories.toFixed(0)} kcal
+                  <Typography variant="caption" color="text.secondary" flexShrink={0}>
+                    {item.calories.toFixed(0)} ккал
                   </Typography>
                 </Box>
               ))}
             </Box>
-          </>
+          </Collapse>
+        )}
+
+        {/* Actions */}
+        {showActions && (
+          <Box mt={1.5}>
+            <Button
+              fullWidth
+              size="small"
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={onAdd}
+              sx={{ fontSize: "0.78rem" }}
+            >
+              Добавить
+            </Button>
+          </Box>
         )}
       </CardContent>
-      {onAddFood && (
-        <Box px={1.5} pb={1.5}>
-          <Button
-            fullWidth
-            size="small"
-            variant="outlined"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={onAddFood}
-            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-          >
-            Add food
-          </Button>
-        </Box>
-      )}
     </Card>
   );
 }

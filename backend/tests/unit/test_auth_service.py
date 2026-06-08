@@ -1,12 +1,3 @@
-"""Unit tests for ``AuthService`` and helpers from ``app.services.auth``.
-
-Test level: **unit**.
-
-The repository layer is replaced with ``unittest.mock.AsyncMock`` so that no
-database is required. Only pure business logic is exercised: registration,
-duplicate-email guard, password verification and JWT round-trip.
-"""
-
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock

@@ -1,17 +1,18 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.models.user import UserRole
+from app.schemas.email_field import AppEmailStr
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: AppEmailStr
     password: str
     name: str
     role: UserRole = UserRole.user
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: AppEmailStr
     password: str
 
 

@@ -10,6 +10,7 @@ from app.database import Base
 class UserRole(str, enum.Enum):
     user = "user"
     trainer = "trainer"
+    admin = "admin"
 
 
 class User(Base):
@@ -44,3 +45,9 @@ class User(Base):
     received_messages = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id")
     time_slots = relationship("TimeSlot", back_populates="trainer")
     bookings = relationship("Booking", back_populates="user")
+    weight_logs = relationship(
+        "WeightLog", back_populates="user", cascade="all, delete-orphan"
+    )
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )

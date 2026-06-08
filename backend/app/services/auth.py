@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 import bcrypt
 from fastapi import HTTPException, status
@@ -25,8 +26,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    to_encode.setdefault("jti", uuid4().hex)
+    to_encode["exp"] = expire
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -46,6 +50,11 @@ class AuthService:
         self.user_repo = user_repo
 
     async def register(self, email: str, password: str, name: str, role: UserRole):
+        if role == UserRole.admin:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot self-register as admin",
+            )
         existing = await self.user_repo.get_by_email(email)
         if existing:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")

@@ -54,10 +54,6 @@ class ChatRepository:
         return int(result.rowcount or 0)
 
     async def get_dialog_partners(self, user_id: int) -> List[dict]:
-        """Return one row per chat partner with last message metadata and unread count.
-
-        Implemented as two aggregate queries to keep SQL portable and readable.
-        """
         other_id_expr = case(
             (Message.sender_id == user_id, Message.receiver_id),
             else_=Message.sender_id,
@@ -110,9 +106,6 @@ class ChatRepository:
                 msg.receiver_id if msg.sender_id == user_id else msg.sender_id
             )
             current = last_by_other.get(other_id)
-            # Tie-break by id so that two messages persisted in the same
-            # microsecond (common in tests with fast SQLite inserts) yield
-            # a deterministic "last" message.
             new_key = (msg.created_at, msg.id)
             if current is None or new_key > (current.created_at, current.id):
                 last_by_other[other_id] = msg

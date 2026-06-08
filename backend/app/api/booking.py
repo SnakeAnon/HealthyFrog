@@ -14,6 +14,7 @@ from app.schemas.booking import (
     TimeSlotCreate,
     TimeSlotResponse,
 )
+from app.services import audit as audit_service
 from app.services.booking import BookingService
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -48,7 +49,21 @@ async def create_slot(
 ):
     repo = BookingRepository(db)
     service = BookingService(repo)
-    return await service.create_slot(current_user.id, data.start_time, data.end_time)
+    slot = await service.create_slot(
+        current_user.id, data.start_time, data.end_time
+    )
+    await audit_service.log(
+        db,
+        user_id=current_user.id,
+        action="slot.create",
+        entity_type="time_slot",
+        entity_id=slot.id,
+        payload={
+            "start_time": data.start_time.isoformat(),
+            "end_time": data.end_time.isoformat(),
+        },
+    )
+    return slot
 
 
 @router.post("/", response_model=BookingResponse, status_code=201)
@@ -59,7 +74,16 @@ async def book_slot(
 ):
     repo = BookingRepository(db)
     service = BookingService(repo)
-    return await service.book_slot(data.slot_id, current_user.id)
+    booking = await service.book_slot(data.slot_id, current_user.id)
+    await audit_service.log(
+        db,
+        user_id=current_user.id,
+        action="booking.create",
+        entity_type="booking",
+        entity_id=booking.id,
+        payload={"slot_id": data.slot_id},
+    )
+    return booking
 
 
 @router.get("/my", response_model=List[BookingResponse])
@@ -91,4 +115,13 @@ async def update_booking_status(
 ):
     repo = BookingRepository(db)
     service = BookingService(repo)
-    return await service.update_status(booking_id, data.status, current_user.id)
+    booking = await service.update_status(booking_id, data.status, current_user.id)
+    await audit_service.log(
+        db,
+        user_id=current_user.id,
+        action="booking.status_change",
+        entity_type="booking",
+        entity_id=booking_id,
+        payload={"status": data.status.value},
+    )
+    return booking

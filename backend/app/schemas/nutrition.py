@@ -72,3 +72,70 @@ class DailyReport(BaseModel):
     total_fat: float
     total_carbs: float
     meals: List[MealResponse]
+
+
+class DailySummary(BaseModel):
+    """One day inside a period or weekly report."""
+
+    date: date
+    total_calories: float
+    total_protein: float
+    total_fat: float
+    total_carbs: float
+    meals: List[MealResponse]
+
+
+class PeriodReport(BaseModel):
+    """Aggregated nutrition for a single user across a date range."""
+
+    user_id: int
+    period_start: date
+    period_end: date
+    total_calories: float
+    total_proteins: float
+    total_fats: float
+    total_carbs: float
+    average_daily_calories: float
+    days_with_data: int
+    days: List[DailySummary]
+
+
+class WeeklyReport(PeriodReport):
+    """Period report covering the last 7 days plus a textual summary."""
+
+    summary: Optional[str] = None
+
+
+class DailyTotals(BaseModel):
+    """One day's total macros (without the meals breakdown)."""
+
+    date: date
+    total_calories: float
+    total_protein: float
+    total_fat: float
+    total_carbs: float
+
+
+class RangeReport(BaseModel):
+    period_start: date
+    period_end: date
+    days: List[DailyTotals]
+
+
+class SummaryReport(BaseModel):
+    """Aggregated min/max/avg/total over a date range."""
+
+    period_start: date
+    period_end: date
+    days_total: int
+    days_logged: int
+    total_calories: float
+    total_protein: float
+    total_fat: float
+    total_carbs: float
+    avg_calories: float
+    avg_protein: float
+    avg_fat: float
+    avg_carbs: float
+    min_calories: float
+    max_calories: float

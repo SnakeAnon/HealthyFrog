@@ -1,12 +1,3 @@
-"""Integration tests for the nutrition diary endpoints.
-
-Test level: **integration**.
-
-Covers product catalogue creation, meal creation and the addition of meal
-items together with the macro-nutrient calculation that the API performs
-on top of the persisted product.
-"""
-
 from __future__ import annotations
 
 from datetime import date

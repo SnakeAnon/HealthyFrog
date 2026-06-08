@@ -26,7 +26,6 @@ class BookingService:
 
         booking = await self.repo.create_booking(slot_id, user_id)
         await self.repo.mark_slot_unavailable(slot)
-        # Reload with slot relation
         return await self.repo.get_booking_by_id(booking.id)
 
     async def get_user_bookings(self, user_id: int):
@@ -39,7 +38,6 @@ class BookingService:
         booking = await self.repo.get_booking_by_id(booking_id)
         if not booking:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
-        # Allow the booking owner or the slot's trainer to update status
         if booking.user_id != current_user_id and booking.slot.trainer_id != current_user_id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
         return await self.repo.update_booking_status(booking, new_status)

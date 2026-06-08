@@ -1,12 +1,3 @@
-"""Unit tests for ``NutritionService``.
-
-Test level: **unit**.
-
-Repositories are mocked. The tests focus on the macro-nutrient calculator,
-ownership checks and data assembly that the service performs on top of the
-repository contract.
-"""
-
 from __future__ import annotations
 
 from datetime import date, datetime, timezone

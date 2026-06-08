@@ -1,12 +1,3 @@
-"""Integration tests for the chat REST endpoints.
-
-Test level: **integration**.
-
-Covers message sending, conversation retrieval, the dialog list, the
-mark-as-read flow and the access-control guarantee that an outsider
-cannot read a conversation between two other participants.
-"""
-
 from __future__ import annotations
 
 PREFIX = "/api/v1"
@@ -43,7 +34,6 @@ async def test_send_and_fetch_conversation(client, register_user) -> None:
 
     assert history_sender.status_code == 200
     assert history_receiver.status_code == 200
-    # Both participants see exactly one message with the same id.
     assert [m["id"] for m in history_sender.json()] == [body["id"]]
     assert [m["id"] for m in history_receiver.json()] == [body["id"]]
 
@@ -83,8 +73,6 @@ async def test_outsider_cannot_read_others_conversation(
         json={"receiver_id": b["id"], "content": "secret"},
     )
 
-    # The repository filters by both participants, so requesting `b`'s
-    # conversation while authenticated as `spy` returns an empty list.
     res = await client.get(
         f"{PREFIX}/chat/{b['id']}", headers=spy["headers"]
     )

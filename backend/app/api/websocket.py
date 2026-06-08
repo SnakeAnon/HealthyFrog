@@ -13,15 +13,6 @@ router = APIRouter(tags=["WebSocket"])
 
 
 class ConnectionManager:
-    """Tracks active WebSocket connections keyed by user_id.
-
-    In-memory by design for the MVP: a single backend process serves all
-    sockets, no broker is required. A future horizontal scale-out would
-    replace this with Redis Pub/Sub or a dedicated WS gateway, while the
-    rest of the chat code stays untouched because the manager is the only
-    place that knows about live sockets.
-    """
-
     def __init__(self) -> None:
         self.active: Dict[int, List[WebSocket]] = {}
 
@@ -61,14 +52,6 @@ def _serialize(message) -> dict:
 
 @router.websocket("/ws/chat")
 async def websocket_chat(websocket: WebSocket, token: str = Query(...)):
-    """Real-time chat endpoint.
-
-    Connect with: ``ws://<host>/api/v1/ws/chat?token=<JWT>``.
-
-    Client → server JSON: ``{"receiver_id": <int>, "content": "<text>"}``.
-    Server → client JSON: serialized ``Message`` object (see ``_serialize``)
-    or ``{"type": "error", "detail": <str>}`` on validation issues.
-    """
     try:
         payload = decode_token(token)
         user_id = int(payload["sub"])

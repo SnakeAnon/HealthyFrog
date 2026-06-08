@@ -1,12 +1,3 @@
-"""Integration tests for the ``/api/v1/auth`` endpoints.
-
-Test level: **integration**.
-
-Drives the real FastAPI app through ``httpx.AsyncClient`` against an
-isolated test database. Verifies the registration / login contract and
-that protected endpoints reject anonymous access.
-"""
-
 from __future__ import annotations
 
 PREFIX = "/api/v1"
@@ -67,8 +58,6 @@ async def test_login_with_wrong_password_returns_401(client) -> None:
 
 async def test_protected_endpoint_requires_token(client) -> None:
     res = await client.get(f"{PREFIX}/users/me")
-    # FastAPI HTTPBearer responds with 403 when no Authorization header is
-    # present, and with 401 when a malformed token is supplied.
     assert res.status_code in (401, 403)
 
 

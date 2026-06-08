@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from sqlalchemy import select
@@ -12,17 +13,23 @@ class BookingRepository:
         self.db = db
 
     async def get_trainer_slots(self, trainer_id: int) -> List[TimeSlot]:
+        now = datetime.now(timezone.utc)
         result = await self.db.execute(
             select(TimeSlot)
-            .where(TimeSlot.trainer_id == trainer_id)
+            .where(TimeSlot.trainer_id == trainer_id, TimeSlot.start_time > now)
             .order_by(TimeSlot.start_time)
         )
         return list(result.scalars().all())
 
     async def get_available_slots(self, trainer_id: int) -> List[TimeSlot]:
+        now = datetime.now(timezone.utc)
         result = await self.db.execute(
             select(TimeSlot)
-            .where(TimeSlot.trainer_id == trainer_id, TimeSlot.is_available == True)
+            .where(
+                TimeSlot.trainer_id == trainer_id,
+                TimeSlot.is_available == True,
+                TimeSlot.start_time > now,
+            )
             .order_by(TimeSlot.start_time)
         )
         return list(result.scalars().all())

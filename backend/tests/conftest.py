@@ -49,7 +49,13 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app import models  # noqa: E402, F401  (registers ORM mappers on Base.metadata)
 from app.database import Base, get_db  # noqa: E402
+from app.dependencies import get_meal_analysis_service  # noqa: E402
 from app.main import app  # noqa: E402
+from app.schemas.meal_analysis import (  # noqa: E402
+    AnalysisResponse,
+    IngredientItem,
+    VoiceAnalysisResponse,
+)
 
 
 def _engine_kwargs(url: str) -> dict:
@@ -87,8 +93,74 @@ async def db_session(session_factory) -> AsyncIterator[AsyncSession]:
         yield session
 
 
+class FakeMealAnalysisService:
+    """Stand-in for ``MealAnalysisService`` used by integration tests.
+
+    Attributes ``text_response`` / ``photo_response`` / ``voice_response``
+    can be overridden per-test via the ``fake_ai`` fixture; calls are
+    recorded so tests can assert that the right code path executed.
+    """
+
+    def __init__(self) -> None:
+        self.text_response = AnalysisResponse(
+            dish_name="Oatmeal with berries",
+            ingredients=[IngredientItem(name="Oatmeal", amount_grams=200)],
+            estimated_weight=250.0,
+            calories=320.0,
+            proteins=12.0,
+            fats=6.0,
+            carbs=55.0,
+            confidence=0.8,
+            notes="ai-stub",
+        )
+        self.photo_response = AnalysisResponse(
+            dish_name="Caesar salad",
+            ingredients=[],
+            estimated_weight=200.0,
+            calories=180.0,
+            proteins=8.0,
+            fats=10.0,
+            carbs=15.0,
+            confidence=0.6,
+        )
+        self.voice_response = VoiceAnalysisResponse(
+            transcribed_text="buckwheat with chicken, 350 grams",
+            dish_name="Buckwheat with chicken",
+            ingredients=[],
+            estimated_weight=350.0,
+            calories=420.0,
+            proteins=30.0,
+            fats=8.0,
+            carbs=55.0,
+        )
+        self.calls: list[str] = []
+
+    async def analyze_text(self, text: str) -> AnalysisResponse:
+        self.calls.append(f"text:{text}")
+        return self.text_response
+
+    async def analyze_photo(
+        self, image_bytes: bytes, mime_type: str
+    ) -> AnalysisResponse:
+        self.calls.append(f"photo:{mime_type}:{len(image_bytes)}")
+        return self.photo_response
+
+    async def analyze_voice(
+        self, audio_bytes: bytes, mime_type: str
+    ) -> VoiceAnalysisResponse:
+        self.calls.append(f"voice:{mime_type}:{len(audio_bytes)}")
+        return self.voice_response
+
+
+@pytest.fixture
+def fake_ai() -> FakeMealAnalysisService:
+    return FakeMealAnalysisService()
+
+
 @pytest_asyncio.fixture
-async def client(session_factory) -> AsyncIterator[AsyncClient]:
+async def client(
+    session_factory, fake_ai: FakeMealAnalysisService
+) -> AsyncIterator[AsyncClient]:
     """HTTP client wired to the FastAPI app with an isolated test database."""
 
     async def _get_db() -> AsyncIterator[AsyncSession]:
@@ -96,6 +168,7 @@ async def client(session_factory) -> AsyncIterator[AsyncClient]:
             yield session
 
     app.dependency_overrides[get_db] = _get_db
+    app.dependency_overrides[get_meal_analysis_service] = lambda: fake_ai
     try:
         async with AsyncClient(
             transport=ASGITransport(app=app), base_url="http://test"

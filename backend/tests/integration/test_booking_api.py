@@ -1,12 +1,3 @@
-"""Integration tests for the booking endpoints.
-
-Test level: **integration**.
-
-The booking module is intentionally a thin add-on; these tests pin its
-public contract: only trainers create slots, clients see and book them,
-and the slot becomes unavailable after a booking.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -63,7 +54,6 @@ async def test_trainer_creates_slot_and_user_books_it(
     assert body["user_id"] == user["id"]
     assert body["slot"]["id"] == slot_id
 
-    # The slot should no longer be available for booking by anyone else.
     available_after = await client.get(
         f"{PREFIX}/bookings/slots/{trainer['id']}",
         headers=user["headers"],

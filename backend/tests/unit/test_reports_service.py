@@ -1,12 +1,3 @@
-"""Unit tests for the daily report aggregation logic.
-
-Test level: **unit**.
-
-The reports endpoint reuses ``NutritionService.get_daily_report``; these
-tests pin its behaviour for the empty-day edge case and the multi-meal
-aggregation path without touching the database.
-"""
-
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -89,3 +80,107 @@ async def test_daily_report_passes_user_id_through() -> None:
     await service.get_daily_report(user_id=42, day=date(2024, 5, 17))
 
     repo.get_meals_by_date.assert_awaited_once_with(42, date(2024, 5, 17))
+
+
+# --------------------------------------------------------------------------- #
+# Range / summary reports
+# --------------------------------------------------------------------------- #
+
+
+import pytest
+from fastapi import HTTPException
+
+
+async def test_range_report_pads_empty_days_with_zeros() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(
+        return_value=[_meal_with(100, meal_id=1, meal_type=MealType.lunch)]
+    )
+    service = NutritionService(repo)
+
+    report = await service.get_range_report(
+        user_id=1, date_from=date(2024, 1, 1), date_to=date(2024, 1, 3)
+    )
+
+    assert report.period_start == date(2024, 1, 1)
+    assert report.period_end == date(2024, 1, 3)
+    assert len(report.days) == 3
+    assert report.days[0].date == date(2024, 1, 1)
+    assert report.days[0].total_calories == 100.0
+    assert report.days[1].total_calories == 0.0
+    assert report.days[2].total_calories == 0.0
+
+
+async def test_range_report_inclusive_bounds() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(return_value=[])
+    service = NutritionService(repo)
+
+    report = await service.get_range_report(
+        user_id=1, date_from=date(2024, 1, 1), date_to=date(2024, 1, 1)
+    )
+    assert len(report.days) == 1
+    assert report.days[0].date == date(2024, 1, 1)
+
+
+async def test_range_report_rejects_inverted_period() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(return_value=[])
+    service = NutritionService(repo)
+
+    with pytest.raises(HTTPException) as exc:
+        await service.get_range_report(
+            user_id=1, date_from=date(2024, 1, 5), date_to=date(2024, 1, 1)
+        )
+    assert exc.value.status_code == 400
+
+
+async def test_range_report_rejects_too_long_period() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(return_value=[])
+    service = NutritionService(repo)
+
+    with pytest.raises(HTTPException) as exc:
+        await service.get_range_report(
+            user_id=1,
+            date_from=date(2024, 1, 1),
+            date_to=date(2025, 1, 2),  # 367 days
+        )
+    assert exc.value.status_code == 400
+
+
+async def test_summary_report_avg_min_max() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(
+        return_value=[
+            _meal_with(100, meal_id=1, meal_type=MealType.breakfast),
+            _meal_with(200, meal_id=2, meal_type=MealType.lunch),
+        ]
+    )
+    service = NutritionService(repo)
+
+    summary = await service.get_summary_report(
+        user_id=1, date_from=date(2024, 1, 1), date_to=date(2024, 1, 3)
+    )
+    assert summary.days_total == 3
+    assert summary.days_logged == 1
+    assert summary.total_calories == 300.0
+    assert summary.avg_calories == 300.0
+    assert summary.min_calories == 300.0
+    assert summary.max_calories == 300.0
+
+
+async def test_summary_report_zero_when_no_data() -> None:
+    repo = MagicMock()
+    repo.get_meals_in_range = AsyncMock(return_value=[])
+    service = NutritionService(repo)
+
+    summary = await service.get_summary_report(
+        user_id=1, date_from=date(2024, 1, 1), date_to=date(2024, 1, 5)
+    )
+    assert summary.days_total == 5
+    assert summary.days_logged == 0
+    assert summary.total_calories == 0.0
+    assert summary.avg_calories == 0.0
+    assert summary.min_calories == 0.0
+    assert summary.max_calories == 0.0

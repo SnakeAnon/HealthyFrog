@@ -1,9 +1,11 @@
-import { Box, CircularProgress } from "@mui/material";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { Box, CircularProgress, CssBaseline, ThemeProvider } from "@mui/material";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeModeProvider, useThemeMode } from "./context/ThemeContext";
+import { darkTheme, lightTheme } from "./theme/themes";
+import Admin from "./pages/Admin";
 import Bookings from "./pages/Bookings";
 import Chat from "./pages/Chat";
 import Dashboard from "./pages/Dashboard";
@@ -12,7 +14,6 @@ import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
 import Trainers from "./pages/Trainers";
-import { mobileDarkTheme } from "./theme/mobileDarkTheme";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth();
@@ -23,6 +24,18 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       </Box>
     );
   if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { isAdmin, isLoading } = useAuth();
+  if (isLoading)
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -44,22 +57,40 @@ function AppRoutes() {
         <Route path="profile" element={<Profile />} />
         <Route path="trainers" element={<Trainers />} />
         <Route path="diary" element={<Diary />} />
+        <Route path="reports" element={<Navigate to="/diary?reports=1" replace />} />
         <Route path="chat" element={<Chat />} />
         <Route path="bookings" element={<Bookings />} />
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
       </Route>
     </Routes>
   );
 }
 
+function ThemedApp() {
+  const { mode } = useThemeMode();
+  return (
+    <ThemeProvider theme={mode === "dark" ? darkTheme : lightTheme}>
+      <CssBaseline enableColorScheme />
+      <BrowserRouter>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
+
 export default function App() {
   return (
-    <ThemeProvider theme={mobileDarkTheme}>
-      <CssBaseline enableColorScheme />
-      <AuthProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <ThemeModeProvider>
+      <ThemedApp />
+    </ThemeModeProvider>
   );
 }

@@ -13,3 +13,6 @@ export const assignTrainer = (trainerId: number) =>
   api.post<User>(`/users/me/trainer/${trainerId}`);
 
 export const getMyClients = () => api.get<User[]>("/users/my-clients");
+
+// Re-export weight helpers for backwards compatibility.
+export { getWeightHistory, getWeightTrend, recordWeight } from "./weight";

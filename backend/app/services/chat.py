@@ -9,11 +9,6 @@ from app.schemas.chat import DialogResponse, MessageResponse
 
 
 class ChatService:
-    """Business logic for messaging.
-
-    Holds both repositories so dialog summaries can be assembled with
-    partner names without leaking SQL details into the API layer.
-    """
 
     def __init__(self, chat_repo: ChatRepository, user_repo: UserRepository):
         self.chat_repo = chat_repo

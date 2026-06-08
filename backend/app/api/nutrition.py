@@ -16,6 +16,7 @@ from app.schemas.nutrition import (
     ProductCreate,
     ProductResponse,
 )
+from app.services import audit as audit_service
 from app.services.nutrition import NutritionService
 
 router = APIRouter(prefix="/nutrition", tags=["Nutrition"])
@@ -59,7 +60,19 @@ async def create_meal(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await _service(db).create_meal(current_user.id, data)
+    meal = await _service(db).create_meal(current_user.id, data)
+    await audit_service.log(
+        db,
+        user_id=current_user.id,
+        action="meal.create",
+        entity_type="meal",
+        entity_id=meal.id,
+        payload={
+            "date": data.date.isoformat(),
+            "meal_type": data.meal_type.value,
+        },
+    )
+    return meal
 
 
 @router.post("/meals/{meal_id}/items", response_model=MealItemResponse, status_code=201)

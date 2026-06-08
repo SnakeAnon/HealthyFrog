@@ -39,6 +39,22 @@ class NutritionRepository:
         )
         return list(result.scalars().all())
 
+    async def get_meals_in_range(
+        self, user_id: int, date_from: date, date_to: date
+    ) -> List[Meal]:
+        """All meals for ``user_id`` within ``[date_from; date_to]`` inclusive."""
+        result = await self.db.execute(
+            select(Meal)
+            .where(
+                Meal.user_id == user_id,
+                Meal.date >= date_from,
+                Meal.date <= date_to,
+            )
+            .options(selectinload(Meal.items).selectinload(MealItem.product))
+            .order_by(Meal.date.asc(), Meal.created_at.asc())
+        )
+        return list(result.scalars().all())
+
     async def get_meal_by_id(self, meal_id: int) -> Optional[Meal]:
         result = await self.db.execute(
             select(Meal)

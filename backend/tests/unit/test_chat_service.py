@@ -1,13 +1,3 @@
-"""Unit tests for ``ChatService``.
-
-Test level: **unit**.
-
-Both repositories are mocked. These tests cover validation rules
-(empty content, self-recipient, missing user), the trim-and-persist happy
-path, the protective behaviour of ``get_conversation``/``mark_as_read``
-and the empty-dialogs fast path.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime

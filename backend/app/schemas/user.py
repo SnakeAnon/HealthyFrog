@@ -1,14 +1,15 @@
 from typing import Optional
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 
 from app.models.user import UserRole
+from app.schemas.email_field import AppEmailStr
 
 
 class UserProfile(BaseModel):
     id: int
-    email: EmailStr
+    email: AppEmailStr
     name: Optional[str]
     role: UserRole
     age: Optional[int]
@@ -33,9 +34,15 @@ class UserUpdate(BaseModel):
     specialty: Optional[str] = None
 
 
+class AdminUserUpdate(UserUpdate):
+
+    role: Optional[UserRole] = None
+    trainer_id: Optional[int] = None
+
+
 class TrainerProfile(BaseModel):
     id: int
-    email: EmailStr
+    email: AppEmailStr
     name: Optional[str]
     bio: Optional[str]
     specialty: Optional[str]

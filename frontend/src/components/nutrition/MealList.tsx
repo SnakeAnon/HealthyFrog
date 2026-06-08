@@ -4,21 +4,16 @@ import MealCard from "./MealCard";
 
 export interface MealListProps {
   meals: Meal[];
-  /** Per-meal “add food” handler (meal id) */
-  onAddFood?: (mealId: number) => void;
-  /** Section heading */
+  onAdd?: (mealId: number) => void;
   title?: string;
   emptyMessage?: string;
 }
 
-/**
- * Vertical stack of meal cards — typical home / diary meal list.
- */
 export default function MealList({
   meals,
-  onAddFood,
-  title = "Meals",
-  emptyMessage = "No meals logged for this day.",
+  onAdd,
+  title = "Приёмы пищи",
+  emptyMessage = "За этот день ничего не записано.",
 }: MealListProps) {
   return (
     <Box>
@@ -34,7 +29,7 @@ export default function MealList({
           <MealCard
             key={meal.id}
             meal={meal}
-            onAddFood={onAddFood ? () => onAddFood(meal.id) : undefined}
+            onAdd={onAdd ? () => onAdd(meal.id) : undefined}
           />
         ))
       )}

@@ -37,6 +37,13 @@ services:
       GEMINI_API_IDENTIFY_FOOD_KEY: "${GEMINI_API_IDENTIFY_FOOD_KEY:-}"
       GEMINI_API_ESTIMATE_WEIGHT_KEY: "${GEMINI_API_ESTIMATE_WEIGHT_KEY:-}"
       GEMINI_API_ESTIMATE_KBJU_KEY: "${GEMINI_API_ESTIMATE_KBJU_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      OPENROUTER_BASE_URL: "${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+      OPENROUTER_TRANSCRIPTION_MODEL: "${OPENROUTER_TRANSCRIPTION_MODEL:-whisper-1}"
+      # TEMP: PolzaAI regional workaround (takes priority when key is set)
+      POLZA_API_KEY: "${POLZA_API_KEY:-}"
+      POLZA_BASE_URL: "${POLZA_BASE_URL:-https://polza.ai/api/v1}"
+      POLZA_TRANSCRIPTION_MODEL: "${POLZA_TRANSCRIPTION_MODEL:-whisper-1}"
     depends_on:
       - db
     restart: on-failure

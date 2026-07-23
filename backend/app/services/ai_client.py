@@ -146,30 +146,65 @@ class AIClient:
         key = getattr(settings, "OPENROUTER_API_KEY", None)
         return bool(key and str(key).strip())
 
-    def _openrouter_sync_call(
+    def _polza_enabled(self) -> bool:
+        # TEMP: PolzaAI is an OpenAI-compatible aggregator reachable from
+        # regions where OpenRouter's Cloudflare edge blocks the server IP.
+        # Takes priority over OpenRouter/Gemini when POLZA_API_KEY is set.
+        key = getattr(settings, "POLZA_API_KEY", None)
+        return bool(key and str(key).strip())
+
+    def _select_provider(self) -> Optional[dict]:
+        """Return OpenAI-compatible provider config, or None for Gemini.
+
+        Priority: PolzaAI (temporary regional workaround) > OpenRouter.
+        """
+        if self._polza_enabled():
+            headers: dict[str, str] = {"X-Title": settings.POLZA_APP_TITLE}
+            if settings.POLZA_SITE_URL:
+                headers["HTTP-Referer"] = settings.POLZA_SITE_URL
+            return {
+                "label": "PolzaAI",
+                "base_url": settings.POLZA_BASE_URL,
+                "api_key": (settings.POLZA_API_KEY or "").strip(),
+                "headers": headers,
+                "transcription_model": settings.POLZA_TRANSCRIPTION_MODEL,
+                "transcription_setting": "POLZA_TRANSCRIPTION_MODEL",
+            }
+        if self._openrouter_enabled():
+            headers = {"X-Title": settings.OPENROUTER_APP_TITLE}
+            if settings.OPENROUTER_SITE_URL:
+                headers["HTTP-Referer"] = settings.OPENROUTER_SITE_URL
+            return {
+                "label": "OpenRouter",
+                "base_url": settings.OPENROUTER_BASE_URL,
+                "api_key": (settings.OPENROUTER_API_KEY or "").strip(),
+                "headers": headers,
+                "transcription_model": settings.OPENROUTER_TRANSCRIPTION_MODEL,
+                "transcription_setting": "OPENROUTER_TRANSCRIPTION_MODEL",
+            }
+        return None
+
+    def _openai_compat_call(
         self,
         prompt: str,
         model: str,
         image: Optional[tuple[bytes, str]],
         audio: Optional[tuple[bytes, str]],
-        api_key: str,
+        provider: dict,
     ) -> str:
         try:
             from openai import OpenAI
         except ImportError as exc:  # pragma: no cover
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Install `openai` for OpenRouter support.",
+                detail="Install `openai` for OpenAI-compatible providers.",
             ) from exc
 
-        headers: dict[str, str] = {"X-Title": settings.OPENROUTER_APP_TITLE}
-        if settings.OPENROUTER_SITE_URL:
-            headers["HTTP-Referer"] = settings.OPENROUTER_SITE_URL
-
+        label = provider["label"]
         client = OpenAI(
-            base_url=settings.OPENROUTER_BASE_URL,
-            api_key=api_key,
-            default_headers=headers,
+            base_url=provider["base_url"],
+            api_key=provider["api_key"],
+            default_headers=provider["headers"],
         )
 
         if audio is not None:
@@ -180,16 +215,17 @@ class AIClient:
             bio.name = "audio.webm"
             try:
                 tr = client.audio.transcriptions.create(
-                    model=settings.OPENROUTER_TRANSCRIPTION_MODEL,
+                    model=provider["transcription_model"],
                     file=bio,
                 )
             except Exception as exc:
-                logger.warning("OpenRouter transcription failed: %s", exc)
+                logger.warning("%s transcription failed: %s", label, exc)
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail=(
-                        "Голосовое распознавание через OpenRouter недоступно. "
-                        "Проверьте модель OPENROUTER_TRANSCRIPTION_MODEL или используйте текст/фото."
+                        f"Голосовое распознавание через {label} недоступно. "
+                        f"Проверьте модель {provider['transcription_setting']} "
+                        "или используйте текст/фото."
                     ),
                 ) from exc
             text = getattr(tr, "text", None)
@@ -242,21 +278,23 @@ class AIClient:
         audio: Optional[tuple[bytes, str]] = None,
         stage: Optional[AIStage] = None,
     ) -> str:
-        if self._openrouter_enabled():
-            or_key = (settings.OPENROUTER_API_KEY or "").strip()
+        provider = self._select_provider()
+        if provider is not None:
             try:
                 return await asyncio.to_thread(
-                    self._openrouter_sync_call,
+                    self._openai_compat_call,
                     prompt,
                     model,
                     image,
                     audio,
-                    or_key,
+                    provider,
                 )
             except HTTPException:
                 raise
             except Exception as exc:
-                logger.exception("OpenRouter AI call failed: %s", exc)
+                logger.exception(
+                    "%s AI call failed: %s", provider["label"], exc
+                )
                 raise HTTPException(
                     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                     detail=f"Nutrition AI is unavailable: {exc}",

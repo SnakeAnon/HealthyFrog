@@ -37,6 +37,17 @@ class Settings(BaseSettings):
     OPENROUTER_APP_TITLE: str = "Healthy Frog API"
     OPENROUTER_TRANSCRIPTION_MODEL: str = "whisper-1"
 
+    # TEMP: PolzaAI — OpenAI-compatible aggregator reachable from regions
+    # where OpenRouter's Cloudflare edge blocks the server IP. When
+    # POLZA_API_KEY is set it takes priority over OpenRouter and Gemini.
+    # Use the model id as documented by Polza in AI_MODEL / AI_VISION_MODEL.
+    # Verify POLZA_BASE_URL against Polza's docs before relying on it.
+    POLZA_API_KEY: Optional[str] = None
+    POLZA_BASE_URL: str = "https://polza.ai/api/v1"
+    POLZA_SITE_URL: Optional[str] = None
+    POLZA_APP_TITLE: str = "Healthy Frog API"
+    POLZA_TRANSCRIPTION_MODEL: str = "whisper-1"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

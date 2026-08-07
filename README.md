@@ -242,7 +242,7 @@ Connect: `ws://localhost:8000/api/v1/ws/chat?token=<JWT>`
 | `DATABASE_URL` | `postgresql+asyncpg://...` | Async PostgreSQL URL |
 | `SECRET_KEY` | `change-me` | JWT signing secret |
 | `ALGORITHM` | `HS256` | JWT algorithm |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | `1440` | Token lifetime (24h) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `259200` | Token lifetime (180 days) |
 
 ### Frontend (`frontend/.env`)
 

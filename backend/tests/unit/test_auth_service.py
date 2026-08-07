@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException
 
+from app.config import settings
 from app.models.user import User, UserRole
 from app.services.auth import (
     AuthService,
@@ -107,6 +109,18 @@ def test_jwt_round_trip() -> None:
     payload = decode_token(token)
     assert payload["sub"] == "42"
     assert payload["role"] == "user"
+
+
+def test_access_token_uses_configured_lifetime(monkeypatch) -> None:
+    lifetime_minutes = 259200
+    monkeypatch.setattr(settings, "ACCESS_TOKEN_EXPIRE_MINUTES", lifetime_minutes)
+
+    before = datetime.now(timezone.utc).timestamp()
+    payload = decode_token(create_access_token({"sub": "42", "role": "user"}))
+    after = datetime.now(timezone.utc).timestamp()
+
+    assert before + lifetime_minutes * 60 - 1 <= payload["exp"]
+    assert payload["exp"] <= after + lifetime_minutes * 60
 
 
 def test_decode_token_rejects_garbage() -> None:

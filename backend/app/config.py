@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/healthyfrog"
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 259200  # 180 days
 
     # AI / nutrition recognition. None means the feature is disabled and the
     # API will respond with HTTP 503 instead of crashing the application.
